@@ -1,4 +1,5 @@
-import * as scrapboxParser from "@progfay/scrapbox-parser";
+import { parse as parseScrapbox } from "@progfay/scrapbox-parser";
+import type * as scrapboxParser from "@progfay/scrapbox-parser";
 
 type Logger = {
   error: (message: string) => unknown;
@@ -285,6 +286,6 @@ export default function scrapboxToReView(
   option: ConverterOption = {},
 ): string {
   // 箇条書き/引用終了処理のため、番兵として最後に空行を入れる
-  const ast = scrapboxParser.parse(src + "\n", option);
+  const ast = parseScrapbox(src + "\n", option);
   return generateReView(ast, option);
 }

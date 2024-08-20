@@ -286,3 +286,15 @@ Deno.test("enlarged icon", () => {
   const reviewCode = "@<icon>{https://example.org/hoge.jpg}を";
   assertConvertion(sbContent, reviewCode, { hasTitle: false });
 });
+
+Deno.test("Numbered list without indent", () => {
+  const sbContent = "1. hoge\n2.  fuga";
+  const reviewCode = "1. hoge\n\n2.  fuga";
+  assertConvertion(sbContent, reviewCode, { hasTitle: false });
+});
+
+Deno.test("Blank", () => {
+  const sbContent = "[https://example.com [ ]link text]";
+  const reviewCode = "[@<href>{https://example.com}  link text]";
+  assertConvertion(sbContent, reviewCode, { hasTitle: false });
+});

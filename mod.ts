@@ -263,6 +263,10 @@ function nodeToReView(node: scrapboxParser.Node, logger: Logger): string {
   } else if (node.type === "icon" || node.type === "strongIcon") {
     logger.warn(`An icon is used: ${node.raw}`);
     return `@<icon>{${node.path}.icon}`;
+  } else if (node.type === "numberList") {
+    return node.raw;
+  } else if (node.type === "blank") {
+    return node.text;
   } else {
     logger.error(`Unsupported syntax: ${node.raw}`);
     return node.raw;

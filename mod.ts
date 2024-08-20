@@ -281,6 +281,12 @@ function escapeBlockCommandOption(option: string) {
   return option.replaceAll("]", "\\]");
 }
 
+/**
+ * Convert scrapbox format to Re:VIEW
+ * @param src scrapbox text
+ * @param option options
+ * @returns Re:VIEW text
+ */
 export default function scrapboxToReView(
   src: string,
   option: ConverterOption = {},

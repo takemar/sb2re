@@ -147,6 +147,12 @@ $ cmd
   assertConvertion(sbContent, reviewCode, { hasTitle: false });
 });
 
+Deno.test("Command line inside itemization", () => {
+  const sbContent = "	$ aaa\n	 % bbb\n";
+  const reviewCode = " * @<code>{$ aaa}\n ** @<code>{% bbb}";
+  assertConvertion(sbContent, reviewCode, { hasTitle: false });
+});
+
 Deno.test("Code block", () => {
   const sbContent = `code:a.js[]
  function a() {
@@ -181,13 +187,17 @@ text`;
 });
 
 Deno.test("Image", () => {
-  const sbContent =
-    "[https://scrapbox.io/files/aaaaa.jpg]\n[[https://scrapbox.io/files/bbbbb.jpg]]\nhoge[https://scrapbox.io/files/bbbbb.jpg]fuga";
+  const sbContent = `[https://scrapbox.io/files/aaaaa.jpg]
+[[https://scrapbox.io/files/bbbbb.jpg]]
+hoge[https://scrapbox.io/files/bbbbb.jpg]fuga
+foo[[https://scrapbox.io/files/bbbbb.jpg]]bar`;
   const reviewCode = `//indepimage[https://scrapbox.io/files/aaaaa.jpg]
 
 //indepimage[https://scrapbox.io/files/bbbbb.jpg]
 
-hoge@<icon>{https://scrapbox.io/files/bbbbb.jpg}fuga`;
+hoge@<icon>{https://scrapbox.io/files/bbbbb.jpg}fuga
+
+foo@<icon>{https://scrapbox.io/files/bbbbb.jpg}bar`;
   assertConvertion(sbContent, reviewCode, { hasTitle: false });
 });
 

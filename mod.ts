@@ -254,9 +254,11 @@ function nodeToReView(node: scrapboxParser.Node, logger: Logger): string {
     );
   } else if (node.type === "code") {
     return `@<code>{${escapeInlineCommand(node.text)}}`;
+  } else if (node.type === "commandLine") {
+    return `@<code>{${escapeInlineCommand(node.raw)}}`;
   } else if (node.type === "formula") {
     return `@<m>{${escapeInlineCommand(node.formula)}}`;
-  } else if (node.type === "image") {
+  } else if (node.type === "image" || node.type === "strongImage") {
     return `@<icon>{${escapeInlineCommand(node.src)}}`;
   } else if (node.type === "plain") {
     return node.text;

@@ -13,6 +13,22 @@ type ReViewOption = {
 
 export type ConverterOption = ReViewOption & scrapboxParser.ParserOption;
 
+type Itemization = {
+  level: number;
+  type: "normal";
+  nodes: scrapboxParser.Node[];
+} | {
+  level: number;
+  type: "number";
+  number: number;
+  nodes: scrapboxParser.Node[];
+};
+
+type State = {
+  currentItemization: null | Itemization[];
+  inBlockQuote: boolean;
+};
+
 function generateReView(
   ast: scrapboxParser.Page,
   option: ReViewOption = {},
@@ -28,8 +44,8 @@ function generateReView(
   };
 
   let out = "";
-  const state = {
-    inItemization: false,
+  const state: State = {
+    currentItemization: null,
     inBlockQuote: false,
   };
 
@@ -38,10 +54,10 @@ function generateReView(
       out += `= ${n.text}`;
       out += "\n\n";
     } else {
-      if (n.indent === 0 && state.inItemization) {
+      if (n.indent === 0 && state.currentItemization) {
+        out += generateReViewItemization(state.currentItemization, logger);
         // 箇条書き終了
-        state.inItemization = false;
-        out += "\n";
+        state.currentItemization = null;
       }
 
       if (
@@ -71,15 +87,28 @@ function generateReView(
 
       if (n.indent !== 0) {
         // 箇条書き
-        if (!state.inItemization) {
+        if (!state.currentItemization) {
           // 箇条書き開始
-          state.inItemization = true;
+          state.currentItemization = [];
         }
         if (n.type === "line") {
-          const lineContent = n.nodes.map((n) => nodeToReView(n, logger)).join(
-            "",
-          );
-          out += ` ${"*".repeat(n.indent)} ${lineContent}\n`;
+          if (n.nodes.length !== 0 && n.nodes[0].type === "numberList") {
+            // 数字付き箇条書き
+            const numListNode = n.nodes[0];
+            state.currentItemization.push({
+              level: n.indent,
+              type: "number",
+              number: numListNode.number,
+              nodes: numListNode.nodes,
+            });
+          } else {
+            // 箇条書き
+            state.currentItemization.push({
+              level: n.indent,
+              type: "normal",
+              nodes: n.nodes,
+            });
+          }
           continue;
         } else {
           if (n.type === "table") {
@@ -178,6 +207,26 @@ function generateReView(
   }
 
   return out.replaceAll(/\n{2,}/g, "\n\n").replace(/\n*$/, "\n");
+}
+
+function generateReViewItemization(lists: Itemization[], logger: Logger) {
+  let out = "";
+  for (const list of lists) {
+    if (list.type === "normal") {
+      const lineContent = list.nodes.map((n) => nodeToReView(n, logger)).join(
+        "",
+      );
+      out += ` ${"*".repeat(list.level)} ${lineContent}\n`;
+      continue;
+    }
+    // TODO: better number list support
+    const lineContent = list.nodes.map((n) => nodeToReView(n, logger)).join(
+      "",
+    );
+    out += ` ${"*".repeat(list.level)} ${list.number}. ${lineContent}\n`;
+  }
+  out += "\n";
+  return out;
 }
 
 function generateReViewTable(node: scrapboxParser.Table, logger: Logger) {
@@ -301,3 +350,5 @@ export default function scrapboxToReView(
   const ast = parseScrapbox(src + "\n", option);
   return generateReView(ast, option);
 }
+
+console.log(scrapboxToReView(` 1. \`code\``, { hasTitle: false }));

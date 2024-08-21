@@ -2,7 +2,7 @@
   "version": "3",
   "packages": {
     "specifiers": {
-      "jsr:@progfay/scrapbox-parser@^9.0.0": "jsr:@progfay/scrapbox-parser@9.0.0",
+      "jsr:@progfay/scrapbox-parser@^9.1.1": "jsr:@progfay/scrapbox-parser@9.1.1",
       "jsr:@std/assert@^1.0.2": "jsr:@std/assert@1.0.2",
       "jsr:@std/bytes@^1.0.2-rc.3": "jsr:@std/bytes@1.0.2",
       "jsr:@std/cli@^1.0.3": "jsr:@std/cli@1.0.3",
@@ -11,8 +11,8 @@
       "jsr:@std/io@^0.224.5": "jsr:@std/io@0.224.5"
     },
     "jsr": {
-      "@progfay/scrapbox-parser@9.0.0": {
-        "integrity": "c559602926d6ddd0580ab0c945333d06ed6cbdd67d4c67557edce8b0bb4be978"
+      "@progfay/scrapbox-parser@9.1.1": {
+        "integrity": "71a6f828b7ecd89edc142f9831508561c330f924255ce34d2b835ee69cce424c"
       },
       "@std/assert@1.0.2": {
         "integrity": "ccacec332958126deaceb5c63ff8b4eaf9f5ed0eac9feccf124110435e59e49c",
@@ -43,7 +43,7 @@
   "remote": {},
   "workspace": {
     "dependencies": [
-      "jsr:@progfay/scrapbox-parser@^9.0.0",
+      "jsr:@progfay/scrapbox-parser@^9.1.1",
       "jsr:@std/assert@^1.0.2",
       "jsr:@std/cli@^1.0.3",
       "jsr:@std/fmt@^1.0.0",

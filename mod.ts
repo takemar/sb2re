@@ -21,6 +21,7 @@ type Itemization = {
   level: number;
   type: "number";
   number: number;
+  raw: string;
   nodes: scrapboxParser.Node[];
 };
 
@@ -100,6 +101,7 @@ function generateReView(
               type: "number",
               number: numListNode.number,
               nodes: numListNode.nodes,
+              raw: numListNode.raw,
             });
           } else {
             // 箇条書き
@@ -210,6 +212,33 @@ function generateReView(
 }
 
 function generateReViewItemization(lists: Itemization[], logger: Logger) {
+  if (lists.length === 0) {
+    return "";
+  }
+  if (lists.every((l) => l.type === "number")) {
+    const numbers = lists.map((l) => l.number);
+    let isNumberContinuous = true;
+    for (let i = 0; i < numbers.length - 1; i++) {
+      if (numbers[i + 1] - numbers[i] !== 1) {
+        isNumberContinuous = false;
+        break;
+      }
+    }
+    if (isNumberContinuous && lists.every((l) => l.level === 1)) {
+      let out = "";
+      if (numbers[0] !== 1) {
+        out += `//olnum[${numbers[0]}]\n\n`;
+      }
+      for (const list of lists) {
+        const lineContent = list.nodes.map((n) => nodeToReView(n, logger)).join(
+          "",
+        );
+        out += ` ${list.number}. ${lineContent}\n`;
+      }
+      out += "\n";
+      return out;
+    }
+  }
   let out = "";
   for (const list of lists) {
     if (list.type === "normal") {
@@ -219,7 +248,9 @@ function generateReViewItemization(lists: Itemization[], logger: Logger) {
       out += ` ${"*".repeat(list.level)} ${lineContent}\n`;
       continue;
     }
-    // TODO: better number list support
+    logger.error(
+      `Nested or discontinuous number list not supported: ${list.raw}`,
+    );
     const lineContent = list.nodes.map((n) => nodeToReView(n, logger)).join(
       "",
     );
@@ -350,5 +381,3 @@ export default function scrapboxToReView(
   const ast = parseScrapbox(src + "\n", option);
   return generateReView(ast, option);
 }
-
-console.log(scrapboxToReView(` 1. \`code\``, { hasTitle: false }));

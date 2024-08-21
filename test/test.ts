@@ -303,6 +303,18 @@ Deno.test("Numbered list without indent", () => {
   assertConvertion(sbContent, reviewCode, { hasTitle: false });
 });
 
+Deno.test("Basic number list", () => {
+  const sbContent = " 1. hoge\n 2. \`fuga\`";
+  const reviewCode = " 1. hoge\n 2. @<code>{fuga}";
+  assertConvertion(sbContent, reviewCode, { hasTitle: false });
+});
+
+Deno.test("Basic number list with start number which is not 1", () => {
+  const sbContent = " 10. hoge\n 11. fuga";
+  const reviewCode = "//olnum[10]\n\n 10. hoge\n 11. fuga";
+  assertConvertion(sbContent, reviewCode, { hasTitle: false });
+});
+
 Deno.test("Blank", () => {
   const sbContent = "[https://example.com [ ]link text]";
   const reviewCode = "[@<href>{https://example.com}  link text]";

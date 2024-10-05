@@ -28,6 +28,7 @@ type Itemization = {
 type State = {
   currentItemization: null | Itemization[];
   inBlockQuote: boolean;
+  footnote: FootnoteHandler;
 };
 
 function generateReView(
@@ -48,6 +49,7 @@ function generateReView(
   const state: State = {
     currentItemization: null,
     inBlockQuote: false,
+    footnote: new FootnoteHandler(),
   };
 
   for (const n of ast) {
@@ -56,7 +58,7 @@ function generateReView(
       out += "\n\n";
     } else {
       if (n.indent === 0 && state.currentItemization) {
-        out += generateReViewItemization(state.currentItemization, logger);
+        out += generateReViewItemization(state.currentItemization, state, logger);
         // 箇条書き終了
         state.currentItemization = null;
       }
@@ -68,6 +70,7 @@ function generateReView(
         // 引用終了
         state.inBlockQuote = false;
         out += "//}\n\n";
+        out += state.footnote.dump();
       }
 
       if (
@@ -81,7 +84,7 @@ function generateReView(
           out += "//quote{\n";
         }
         out += `${
-          n.nodes[0].nodes.map((n) => nodeToReView(n, logger)).join("")
+          n.nodes[0].nodes.map((n) => nodeToReView(n, state, logger)).join("")
         }\n`;
         continue;
       }
@@ -139,7 +142,8 @@ function generateReView(
       }
       if (n.type === "table" && n.indent === 0) {
         // 表
-        out += `${generateReViewTable(n, logger)}\n\n`;
+        out += `${generateReViewTable(n, state, logger)}\n\n`;
+        out += state.footnote.dump();
         continue;
       }
       if (
@@ -179,7 +183,7 @@ function generateReView(
             continue;
           }
           out += `${header} ${
-            boldNode.nodes.map((n) => nodeToReView(n, logger)).join("")
+            boldNode.nodes.map((n) => nodeToReView(n, state, logger)).join("")
           }`;
           out += "\n\n";
           continue;
@@ -202,8 +206,9 @@ function generateReView(
         continue;
       }
       if (n.type === "line") {
-        out += n.nodes.map((n) => nodeToReView(n, logger)).join("");
+        out += n.nodes.map((n) => nodeToReView(n, state, logger)).join("");
         out += "\n\n";
+        out += state.footnote.dump();
       }
     }
   }
@@ -211,7 +216,7 @@ function generateReView(
   return out.replaceAll(/\n{2,}/g, "\n\n").replace(/\n*$/, "\n");
 }
 
-function generateReViewItemization(lists: Itemization[], logger: Logger) {
+function generateReViewItemization(lists: Itemization[], state: State, logger: Logger) {
   if (lists.length === 0) {
     return "";
   }
@@ -230,7 +235,7 @@ function generateReViewItemization(lists: Itemization[], logger: Logger) {
         out += `//olnum[${numbers[0]}]\n\n`;
       }
       for (const list of lists) {
-        const lineContent = list.nodes.map((n) => nodeToReView(n, logger)).join(
+        const lineContent = list.nodes.map((n) => nodeToReView(n, state, logger)).join(
           "",
         );
         out += ` ${list.number}. ${lineContent}\n`;
@@ -242,7 +247,7 @@ function generateReViewItemization(lists: Itemization[], logger: Logger) {
   let out = "";
   for (const list of lists) {
     if (list.type === "normal") {
-      const lineContent = list.nodes.map((n) => nodeToReView(n, logger)).join(
+      const lineContent = list.nodes.map((n) => nodeToReView(n, state, logger)).join(
         "",
       );
       out += ` ${"*".repeat(list.level)} ${lineContent}\n`;
@@ -251,7 +256,7 @@ function generateReViewItemization(lists: Itemization[], logger: Logger) {
     logger.error(
       `Nested or discontinuous number list not supported: ${list.raw}`,
     );
-    const lineContent = list.nodes.map((n) => nodeToReView(n, logger)).join(
+    const lineContent = list.nodes.map((n) => nodeToReView(n, state, logger)).join(
       "",
     );
     out += ` ${"*".repeat(list.level)} ${list.number}. ${lineContent}\n`;
@@ -260,19 +265,19 @@ function generateReViewItemization(lists: Itemization[], logger: Logger) {
   return out;
 }
 
-function generateReViewTable(node: scrapboxParser.Table, logger: Logger) {
+function generateReViewTable(node: scrapboxParser.Table, state: State, logger: Logger) {
   const headerColumns = node.cells[0];
   if (headerColumns === undefined) {
     return `//emtable[${escapeBlockCommandOption(node.fileName)}]{\n//}`;
   }
-  const headerText = generateReViewTableColumn(headerColumns, logger);
+  const headerText = generateReViewTableColumn(headerColumns, state, logger);
   const borderText = "------------";
   return `//emtable[${escapeBlockCommandOption(node.fileName)}]{
 ${headerText}
 ${borderText}
 ${
     node.cells.slice(1).map((column) =>
-      generateReViewTableColumn(column, logger)
+      generateReViewTableColumn(column, state, logger)
     ).join("\n")
   }
 //}`;
@@ -280,13 +285,14 @@ ${
 
 function generateReViewTableColumn(
   column: scrapboxParser.Node[][],
+  state: State,
   logger: Logger,
 ): string {
-  return column.map((cell) => cell.map((n) => nodeToReView(n, logger)).join(""))
+  return column.map((cell) => cell.map((n) => nodeToReView(n, state, logger)).join(""))
     .join("\t");
 }
 
-function nodeToReView(node: scrapboxParser.Node, logger: Logger): string {
+function nodeToReView(node: scrapboxParser.Node, state: State, logger: Logger): string {
   if (node.type === "link") {
     if (node.pathType === "relative") {
       logger.error(
@@ -310,12 +316,12 @@ function nodeToReView(node: scrapboxParser.Node, logger: Logger): string {
   } else if (node.type === "strong") {
     return `@<strong>{${
       escapeInlineCommand(
-        node.nodes.map((n) => nodeToReView(n, logger)).join(""),
+        node.nodes.map((n) => nodeToReView(n, state, logger)).join(""),
       )
     }}`;
   } else if (node.type === "decoration") {
     if (node.nodes.length === 1 && node.nodes[0].type === "image") {
-      return nodeToReView(node.nodes[0], logger);
+      return nodeToReView(node.nodes[0], state, logger);
     }
     return node.decos.reduce(
       (inside, decoration) => {
@@ -325,11 +331,13 @@ function nodeToReView(node: scrapboxParser.Node, logger: Logger): string {
           return `@<i>{${inside}}`;
         } else if (decoration === "-") {
           return `@<del>{${inside}}`;
+        } else if (decoration === "~") {
+          return state.footnote.add(inside);
         }
         return inside;
       },
       escapeInlineCommand(
-        node.nodes.map((n) => nodeToReView(n, logger)).join(""),
+        node.nodes.map((n) => nodeToReView(n, state, logger)).join(""),
       ),
     );
   } else if (node.type === "code") {
@@ -365,6 +373,26 @@ function escapeHrefUrl(href: string) {
 
 function escapeBlockCommandOption(option: string) {
   return option.replaceAll("]", "\\]");
+}
+
+class FootnoteHandler {
+  private index = 0;
+  private contents : [number, string][] = [];
+  add(content: string) : string {
+    this.index++;
+    this.contents.push([this.index, content]);
+    return `@<fn>{fn-${this.index}}`;
+  }
+  dump() : string {
+    if (this.contents.length === 0) {
+      return "";
+    }
+    const result = this.contents.map(([index, content]) => {
+      return `//footnote[fn-${index}][${content}]`;
+    });
+    this.contents = [];
+    return `${ result.join("\n") }\n\n`;
+  }
 }
 
 /**

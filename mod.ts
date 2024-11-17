@@ -331,7 +331,7 @@ function nodeToReView(node: scrapboxParser.Node, state: State, logger: Logger): 
           return `@<i>{${inside}}`;
         } else if (decoration === "-") {
           return `@<del>{${inside}}`;
-        } else if (decoration === "~") {
+        } else if (decoration === "+") {
           return state.footnote.add(inside);
         }
         return inside;
